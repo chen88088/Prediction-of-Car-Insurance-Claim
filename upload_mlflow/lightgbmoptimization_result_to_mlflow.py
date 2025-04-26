@@ -28,18 +28,27 @@ else:
     config_path = os.path.abspath(os.path.join(script_dir, "..", "..", "CONFIG", "config.yaml"))
 
 # 若有手動指定 output_dir 則使用，否則抓最新
-if len(sys.argv) >= 5:
-    output_dir = os.path.abspath(sys.argv[4])
-    if not os.path.exists(output_dir):
-        raise FileNotFoundError(f"❌ 指定的 output_dir 不存在：{output_dir}")
-else:
-    print(f"🔍 自動模式：列出 {working_dir} 下所有資料夾...")
-    all_dirs = [f for f in os.listdir(working_dir) if os.path.isdir(os.path.join(working_dir, f))]
-    lightgbm_dirs = [d for d in all_dirs if d.startswith("lightgbmoptimization_20")]
-    print("✅ 可用的資料夾：", lightgbm_dirs)
-    if not lightgbm_dirs:
-        raise FileNotFoundError("❌ 找不到任何 lightgbmoptimization_20* 資料夾")
-    output_dir = os.path.join(working_dir, sorted(lightgbm_dirs, reverse=True)[0])
+# if len(sys.argv) >= 5:
+#     # output_dir = os.path.abspath(sys.argv[4])
+#     # if not os.path.exists(output_dir):
+#     #     raise FileNotFoundError(f"❌ 指定的 output_dir 不存在：{output_dir}")
+#     pass
+# else:
+#     print(f"🔍 自動模式：列出 {working_dir} 下所有資料夾...")
+#     all_dirs = [f for f in os.listdir(working_dir) if os.path.isdir(os.path.join(working_dir, f))]
+#     lightgbm_dirs = [d for d in all_dirs if d.startswith("lightgbmoptimization_20")]
+#     print("✅ 可用的資料夾：", lightgbm_dirs)
+#     if not lightgbm_dirs:
+#         raise FileNotFoundError("❌ 找不到任何 lightgbmoptimization_20* 資料夾")
+#     output_dir = os.path.join(working_dir, sorted(lightgbm_dirs, reverse=True)[0])
+
+print(f"🔍 自動模式：列出 {working_dir} 下所有資料夾...")
+all_dirs = [f for f in os.listdir(working_dir) if os.path.isdir(os.path.join(working_dir, f))]
+lightgbm_dirs = [d for d in all_dirs if d.startswith("lightgbmoptimization_20")]
+print("✅ 可用的資料夾：", lightgbm_dirs)
+if not lightgbm_dirs:
+    raise FileNotFoundError("❌ 找不到任何 lightgbmoptimization_20* 資料夾")
+output_dir = os.path.join(working_dir, sorted(lightgbm_dirs, reverse=True)[0])
 
 print(f"\n📂 使用的輸出資料夾：{output_dir}")
 
