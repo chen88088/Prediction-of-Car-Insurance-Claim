@@ -14,10 +14,7 @@ output_dir = None
 
 if len(sys.argv) >= 4:
     reserved_run_id = sys.argv[3]
-if len(sys.argv) >= 5:
-    output_dir = os.path.abspath(sys.argv[4])
-    if not os.path.exists(output_dir):
-        raise FileNotFoundError(f"❌ 指定的 output_dir 不存在：{output_dir}")
+
 
 # 判斷是否在容器中（未來 K8s）或本地執行
 # ✅ 取代原本這段
@@ -31,9 +28,8 @@ else:
     config_path = os.path.abspath(os.path.join(script_dir, "..", "..", "CONFIG", "config.yaml"))
 
 # 若有手動指定 output_dir 則使用，否則抓最新
-output_dir = None
-if len(sys.argv) >= 4:
-    output_dir = os.path.abspath(sys.argv[3])
+if len(sys.argv) >= 5:
+    output_dir = os.path.abspath(sys.argv[4])
     if not os.path.exists(output_dir):
         raise FileNotFoundError(f"❌ 指定的 output_dir 不存在：{output_dir}")
 else:
