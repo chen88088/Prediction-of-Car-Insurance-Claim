@@ -9,6 +9,16 @@ import yaml
 experiment_name = sys.argv[1]
 experiment_run_name = sys.argv[2]
 
+reserved_run_id = None
+output_dir = None
+
+if len(sys.argv) >= 4:
+    reserved_run_id = sys.argv[3]
+if len(sys.argv) >= 5:
+    output_dir = os.path.abspath(sys.argv[4])
+    if not os.path.exists(output_dir):
+        raise FileNotFoundError(f"❌ 指定的 output_dir 不存在：{output_dir}")
+
 # 判斷是否在容器中（未來 K8s）或本地執行
 # ✅ 取代原本這段
 if os.getcwd().startswith("/mnt/storage/") and "CODE" in os.getcwd():
@@ -46,47 +56,49 @@ os.environ["AWS_SECRET_ACCESS_KEY"] = "minio123"
 mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
 mlflow.set_experiment(experiment_name)
 
-with mlflow.start_run(run_name=experiment_run_name):
-    #run_id = run.info.run_id  # MLflow 自動產生的 UUID
-    #print(f"✅ 本次 Run ID: {run_id}")
+# === 啟動 MLflow run ===
+if reserved_run_id:
+    print(f"使用 reserved run_id: {reserved_run_id}")
+    mlflow.start_run(run_id=reserved_run_id)
+else:
+    print(f"新建一個 run：{experiment_run_name}")
+    mlflow.start_run(run_name=experiment_run_name)
 
-    ## 儲存到檔案
-    #run_id_path = os.path.join(output_dir, "mlflow_run_id.txt")
-    #with open(run_id_path, "w") as f:
-    #    f.write(run_id)
+
     
-    # 上傳 metrics
-    metrics_path = os.path.join(output_dir, "metrics.json")
-    if os.path.exists(metrics_path):
-        metrics = pd.read_json(metrics_path, typ="series")
-        for k, v in metrics.items():
-            mlflow.log_metric(k, float(v))
+# 上傳 metrics
+metrics_path = os.path.join(output_dir, "metrics.json")
+if os.path.exists(metrics_path):
+    metrics = pd.read_json(metrics_path, typ="series")
+    for k, v in metrics.items():
+        mlflow.log_metric(k, float(v))
 
-    # 上傳每輪 AUC（evals_result）
-    eval_path = os.path.join(output_dir, "evals_result.json")
-    if os.path.exists(eval_path):
-        evals = pd.read_json(eval_path)
-        if "valid" in evals and "auc" in evals["valid"]:
-            for i, auc in enumerate(evals["valid"]["auc"]):
-                mlflow.log_metric("roc_auc_iter", auc, step=i)
+# 上傳每輪 AUC（evals_result）
+eval_path = os.path.join(output_dir, "evals_result.json")
+if os.path.exists(eval_path):
+    evals = pd.read_json(eval_path)
+    if "valid" in evals and "auc" in evals["valid"]:
+        for i, auc in enumerate(evals["valid"]["auc"]):
+            mlflow.log_metric("roc_auc_iter", auc, step=i)
 
-    # 上傳報告與圖表
-    for fname in ["optimized_lgbm_report.json", "optimized_feature_importance.png", "optimized_roc_curve.png"]:
-        full_path = os.path.join(output_dir, fname)
-        if os.path.exists(full_path):
-            mlflow.log_artifact(full_path)
+# 上傳報告與圖表
+for fname in ["optimized_lgbm_report.json", "optimized_feature_importance.png", "optimized_roc_curve.png"]:
+    full_path = os.path.join(output_dir, fname)
+    if os.path.exists(full_path):
+        mlflow.log_artifact(full_path)
 
-    # ✅ 上傳當下使用的參數 config.yaml 作為 artifact + MLflow params
-    if os.path.exists(config_path):
-        copied_config_path = os.path.join("/tmp", f"used_config_{experiment_run_name}.yaml")  # ✅ 安全，所有人可寫
+# ✅ 上傳當下使用的參數 config.yaml 作為 artifact + MLflow params
+if os.path.exists(config_path):
+    copied_config_path = os.path.join("/tmp", f"used_config_{experiment_run_name}.yaml")  # ✅ 安全，所有人可寫
 
-        shutil.copyfile(config_path, copied_config_path)
-        mlflow.log_artifact(copied_config_path)
+    shutil.copyfile(config_path, copied_config_path)
+    mlflow.log_artifact(copied_config_path)
 
-        with open(config_path, "r") as f:
-            config_data = yaml.safe_load(f)
-            if "params" in config_data:
-                for key, value in config_data["params"].items():
-                    mlflow.log_param(key, value)
-
-    print("\n✅ 已上傳所有結果與 config 至 MLflow：", experiment_run_name)
+    with open(config_path, "r") as f:
+        config_data = yaml.safe_load(f)
+        if "params" in config_data:
+            for key, value in config_data["params"].items():
+                mlflow.log_param(key, value)
+# === 完成上傳，結束 run ===
+mlflow.end_run()
+print(f"\n✅ 已上傳所有結果與 config 至 MLflow：{experiment_run_name}")
