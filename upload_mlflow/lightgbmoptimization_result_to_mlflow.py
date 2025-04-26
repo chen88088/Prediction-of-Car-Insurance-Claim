@@ -47,6 +47,14 @@ mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
 mlflow.set_experiment(experiment_name)
 
 with mlflow.start_run(run_name=experiment_run_name):
+    run_id = run.info.run_id  # MLflow 自動產生的 UUID
+    print(f"✅ 本次 Run ID: {run_id}")
+
+    # 儲存到檔案
+    run_id_path = os.path.join(output_dir, "mlflow_run_id.txt")
+    with open(run_id_path, "w") as f:
+        f.write(run_id)
+    
     # 上傳 metrics
     metrics_path = os.path.join(output_dir, "metrics.json")
     if os.path.exists(metrics_path):
